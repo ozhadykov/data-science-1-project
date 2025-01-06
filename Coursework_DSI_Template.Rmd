@@ -1,0 +1,110 @@
+---
+title: "Coursework - Data Science I"
+author: "Omar Zhadykov, 220220503"
+output:
+  html_notebook:
+    fig_width: 10
+    theme: spacelab
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  word_document:
+    toc: yes
+    toc_depth: '3'
+  pdf_document: default
+  html_document:
+    fig_width: 10
+    theme: spacelab
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+---
+
+<script>
+$(document).ready(function() {
+  $items = $('div#TOC li');
+  $items.each(function(idx) {
+    num_ul = $(this).parentsUntil('#TOC').length;
+    $(this).css({'text-indent': num_ul * 10, 'padding-left': 0});
+  });
+
+});
+</script>
+
+```{r setup, warning=FALSE, message=FALSE, echo=FALSE}
+library(svglite)
+library(knitr)
+suppressPackageStartupMessages(library(data.table))
+library(ggplot2)
+knitr::opts_chunk$set(dev = "svglite")
+
+# Put your dataset in the same folder as your R file. This code will set your working directory for this notebook to the folder where the R file is stored. This way I can rerun your code without modifications.
+
+library(rstudioapi)
+setwd(dirname(getActiveDocumentContext()$path))
+```
+
+# Introduction
+
+This coursework focuses on housing prices, with the main objective being to predict the price of a property based on various inputs. The inputs include features such as the area, the number and types of rooms, and additional factors like the availability of a main road, hot water heating, and more.
+
+The dependent variable is the price, as it is the primary concern for most people searching for a house. The goal of this work is to predict the price based on diverse inputs, which consist of mixed data types, such as:
+
+  - Numerical values
+  - Text-based responses like "yes" or "no"
+  - Categories for furnishing status, including "furnished," "semi-furnished," or "non-furnished."
+
+This project addresses a regression problem because the objective is to predict a numeric value—in this case, the price of the property.
+
+# Collection / Preparation 
+
+Collect your dataset(s), explore your data for deficiencies such as missing data and formatting problems and prepare it for modelling. 
+
+# Exploration
+
+Explore your data by means of select summary statistics and visualizations and present interesting findings to your reader. 
+
+# Models 1 & 2
+
+Run two regression or classification models with a minimum of 5 (identical!) inputs and evaluate them in detail: Compare their performance on your data (appropriate performance metric, performance on specific regions of the input/output space) and identify potential problems/shortcomings. 
+
+If you tune a model (e.g. threshold of a logistic regression) for some metric, use only the final tuned version in the comparison with the other model. 
+
+# Feature Engineering
+
+Engineer a minimum of two new features based on your data exploration or on theoretical considerations. Add these features to your models and reevaluate their performance on the same performance metrics as before.
+
+***
+
+# Formalities (remove)
+
+The previous part can be used as a template for your coursework. This part should be removed. 
+
+## Submission
+
+Hand in the entire coursework as one reproducible R notebook along with the dataset(s) you used. Your reader must be in a position to rerun all of your code and to reproduce all of your computations and plots. 
+
+Before your hand in your notebook: Run the entire script (without errors), hit *preview* to create the notebook and inspect it in your browser for any missing content/visual glitches. Zip up your notebook (html file) and your dataset, rename the ZIP file with your name and student ID and upload it to StudIP before the deadline.
+
+You may submit your coursework before the deadline and update/re-upload your submission as often as you wish until the deadline. I will consider the most recent file.
+
+## Organizational Issues
+
+You may work in groups of two. Both group members must be able to explain the entire work/codebase.
+
+The coursework is guided. You must set up at least two consultations: One before Christmas to discuss your problem/dataset and another one week before the deadline at the latest to discuss your exploration and modelling. The consultations can be online or in person. If you require/desire more consultations, feel free to contact me or approach me after class.
+
+## Plagiarism
+
+You must be able to explain every code chunk in your script. You may use code from the course scripts and the assignments, i.e. build on your work throughout the semester. Previous submissions attest to the success of this strategy and examples are available online as a guide. 
+
+If you employ models or methods not covered in this course, be prepared to be quizzed on them. Failure to explain your code or outside material in the oral exam will result in a fail in both the coursework and the oral exam.
+
+## Grading
+
+The coursework should reflect your ability to engage in the various steps of data processing (collection, preparation, exploration, modelling, evaluation, feature engineering) in R. Explain yourself in the text that accompanies your code and do not remove parts that “did not yield good results”. The predictive performance of your model is not graded but your ability to inquire into your data in R.
+
+
+
+
+
