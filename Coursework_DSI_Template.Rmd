@@ -58,7 +58,14 @@ This project addresses a regression problem because the objective is to predict 
 
 # Collection / Preparation 
 
-Collect your dataset(s), explore your data for deficiencies such as missing data and formatting problems and prepare it for modelling. 
+Collect your dataset(s), explore your data for deficiencies such as missing data and formatting problems and prepare it for modelling.
+
+Now we are going to import our dataset into this project.
+
+```{r}
+dt_houses <- fread(file = "./Datasets/Regression_set.csv")
+```
+
 
 # Exploration
 
