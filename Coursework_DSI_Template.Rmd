@@ -78,6 +78,60 @@ That looks great, now we can explore our dataset :)
 
 Explore your data by means of select summary statistics and visualizations and present interesting findings to your reader. 
 
+Before we will explore our data, I want to import all libraries, which we will probably use:
+
+```{r}
+library(data.table)
+library(ggcorrplot)
+library(ggExtra)
+library(ggplot2)
+library(ggridges)
+library(ggsci)
+library(ggthemes)
+library(RColorBrewer)
+library(svglite)
+library(viridis)
+```
+
+I found some helpful functions in R, so we could have a look on our data. We will start with a structere, than we will get some statistic data and take a *head()* of the data
+
+```{r}
+str(dt_houses)
+```
+<br>
+Statistic data:
+```{r}
+summary(dt_houses)
+```
+
+<br>
+and this is a sample of our dataset:
+
+```{r}
+head(dt_houses)
+```
+
+
+<br>
+This is interesting, how does area affect price of the house. We will plot it with points, where price is on the y-axis and area on x-axis.
+
+```{r}
+ggplot() + 
+  geom_point(data = dt_houses, aes(x = area, y = price)) +
+  theme_minimal()
+```
+
+This looks nice, but we do not have any knowledge about areas, because they are mostly "ids" and they do not necessary contain "area-value" inside.
+
+But, now I have the simplest idea, how does amount of bedrooms correlates with the price.
+
+```{r}
+ggplot(data = dt_houses, aes(x = bedrooms, y = price)) +
+  geom_boxplot() + 
+  theme_minimal() 
+```
+
+
 # Models 1 & 2
 
 Run two regression or classification models with a minimum of 5 (identical!) inputs and evaluate them in detail: Compare their performance on your data (appropriate performance metric, performance on specific regions of the input/output space) and identify potential problems/shortcomings. 
