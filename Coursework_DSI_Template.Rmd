@@ -58,14 +58,21 @@ This project addresses a regression problem because the objective is to predict 
 
 # Collection / Preparation 
 
-Collect your dataset(s), explore your data for deficiencies such as missing data and formatting problems and prepare it for modelling.
-
 Now we are going to import our dataset into this project.
 
 ```{r}
 dt_houses <- fread(file = "./Datasets/Regression_set.csv")
 ```
 
+<br>
+I would like to check, if i have some nullish data in my dataset. I think it is a good idea to go through all rows and colums and check, if there is a NA. I want to check it with built-in function in R *complete.cases(data_table)*. This function returns TRUE or FALSE if row contains a NA value.
+
+```{r}
+nas <- dt_houses[!complete.cases(dt_houses)]
+nas
+```
+
+That looks great, now we can explore our dataset :)
 
 # Exploration
 
@@ -82,10 +89,6 @@ If you tune a model (e.g. threshold of a logistic regression) for some metric, u
 Engineer a minimum of two new features based on your data exploration or on theoretical considerations. Add these features to your models and reevaluate their performance on the same performance metrics as before.
 
 ***
-
-# Formalities (remove)
-
-The previous part can be used as a template for your coursework. This part should be removed. 
 
 ## Submission
 
