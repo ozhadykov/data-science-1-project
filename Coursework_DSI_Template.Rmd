@@ -91,6 +91,7 @@ library(ggthemes)
 library(RColorBrewer)
 library(svglite)
 library(viridis)
+library(scales)
 ```
 
 I found some helpful functions in R, so we could have a look on our data. We will start with a structere, than we will get some statistic data and take a *head()* of the data
@@ -111,6 +112,35 @@ and this is a sample of our dataset:
 head(dt_houses)
 ```
 
+I would like to start from density of a main values, which are from my domain knowledge are important in price of the properties
+
+We will start with price density: 
+
+```{r}
+ggplot(data = dt_houses, aes(x = price)) + 
+  geom_density(fill="#f1b147", color="#f1b147", alpha=0.25) + 
+  labs(
+    x = 'Price',
+    y = 'Density'
+  ) +
+  scale_x_continuous(labels = label_number(scale = 1e-6, suffix = "M")) + 
+  theme_minimal() + 
+  theme(axis.line = element_line(color = "#000000"))
+```
+
+Also it would be greate to have a look at area density:
+
+```{r}
+ggplot(data = dt_houses, aes(x = area)) + 
+  geom_density(fill="#f1b147", color="#f1b147", alpha=0.25) + 
+  labs(
+    x = 'Price',
+    y = 'Density'
+  ) +
+  theme_minimal() + 
+  theme(axis.line = element_line(color = "#000000"))
+```
+
 
 <br>
 This is interesting, how does area affect price of the house. We will plot it with points, where price is on the y-axis and area on x-axis.
@@ -126,11 +156,38 @@ This looks nice, but we do not have any knowledge about areas, because they are 
 But, now I have the simplest idea, how does amount of bedrooms correlates with the price.
 
 ```{r}
-ggplot(data = dt_houses, aes(x = bedrooms, y = price)) +
+ggplot(data = dt_houses, aes(x = factor(bedrooms), y = price)) +
   geom_boxplot() + 
   theme_minimal() 
 ```
 
+```{r}
+ggplot(data = dt_houses, aes(x = bedrooms, y = price)) +
+  geom_point() + 
+  theme_minimal() 
+```
+
+```{r}
+ggplot(data = dt_houses, aes(x = factor(furnishingstatus), y = price)) +
+  geom_point() + 
+  theme_minimal()
+```
+
+```{r}
+ggplot(data = dt_houses, aes(x = furnishingstatus)) + 
+  geom_density() + 
+  theme_minimal()
+```
+
+```{r}
+ggplot(data = dt_houses, aes(x = price)) + 
+  geom_density() + 
+  theme_minimal()
+```
+
+```{r}
+
+```
 
 # Models 1 & 2
 
