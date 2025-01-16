@@ -224,7 +224,7 @@ ggplot(data = dt_houses, aes(y = price, x = area)) +
   theme(axis.line = element_line(color = "#000000"))
 ```
 
-I think that would be enough eploration and we can start with our first model.
+I think that would be enough exloration and we can start with our first model.
 
 # Models 1 & 2
 
