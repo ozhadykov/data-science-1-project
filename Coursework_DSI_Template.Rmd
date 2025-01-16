@@ -94,7 +94,7 @@ library(viridis)
 library(scales)
 ```
 
-I found some helpful functions in R, so we could have a look on our data. We will start with a structere, than we will get some statistic data and take a *head()* of the data
+I found some helpful functions in R, so we could have a look on our data. We will start with a structure, than we will get some statistic data and take a *head()* of the data
 
 ```{r}
 str(dt_houses)
@@ -102,7 +102,7 @@ str(dt_houses)
 <br>
 Statistic data:
 ```{r}
-summary(dt_houses)
+summary(dt_houses[, .(price, area, bedrooms, bathrooms, stories, parking)])
 ```
 
 <br>
@@ -123,6 +123,7 @@ ggplot(data = dt_houses, aes(x = price)) +
     x = 'Price',
     y = 'Density'
   ) +
+  geom_vline(xintercept = mean(dt_houses$price), linetype="dashed") + 
   scale_x_continuous(labels = label_number(scale = 1e-6, suffix = "M")) + 
   theme_minimal() + 
   theme(axis.line = element_line(color = "#000000"))
@@ -148,7 +149,9 @@ This is interesting, how does area affect price of the house. We will plot it wi
 ```{r}
 ggplot() + 
   geom_point(data = dt_houses, aes(x = area, y = price)) +
-  theme_minimal()
+  scale_y_continuous(labels = label_number(scale = 1e-6, suffix = "M")) + 
+  theme_minimal() + 
+  theme(axis.line = element_line(color = "#000000"))
 ```
 
 This looks nice, but we do not have any knowledge about areas, because they are mostly "ids" and they do not necessary contain "area-value" inside.
@@ -161,29 +164,44 @@ ggplot(data = dt_houses, aes(x = factor(bedrooms), y = price)) +
   theme_minimal() 
 ```
 
+We can see, that on average, more bedrooms, means higher price, but I think there is not really strong relationship between this two variables.
+
+Also it would be great to take a look at a bedrooms histrogram:
+
 ```{r}
-ggplot(data = dt_houses, aes(x = bedrooms, y = price)) +
-  geom_point() + 
-  theme_minimal() 
+ggplot(data = dt_houses, aes(x = bedrooms)) + 
+  geom_histogram(fill="#2f9e44", color="#2f9e44", alpha=0.25) + 
+  geom_vline(xintercept = mean(dt_houses$bedrooms), linetype="dashed") + 
+  theme_minimal() + 
+  theme(axis.line = element_line(color = "#000000"))
+```
+Also I want to show you the mean of the bedrooms:
+```{r}
+mean(dt_houses$bedrooms)
+```
+
+
+Here we can see, that the most of the properties tend to have 2, 3 or 4 rooms. 
+
+Let's also have a look at density and mean value of a stories:
+
+```{r}
+ggplot(data = dt_houses, aes(x = stories)) + 
+  geom_histogram(fill="#2f9e44", color="#2f9e44", alpha=0.25) + 
+  geom_vline(xintercept = mean(dt_houses$bedrooms), linetype="dashed") + 
+  theme_minimal() + 
+  theme(axis.line = element_line(color = "#000000"))
 ```
 
 ```{r}
-ggplot(data = dt_houses, aes(x = factor(furnishingstatus), y = price)) +
-  geom_point() + 
-  theme_minimal()
+ggplot(data = dt_houses, aes(y = price, x = area)) + 
+  geom_point() +
+  facet_grid(.~furnishingstatus) +
+  scale_y_continuous(labels = label_number(scale = 1e-6, suffix = "M")) +
+  theme_minimal() + 
+  theme(axis.line = element_line(color = "#000000"))
 ```
 
-```{r}
-ggplot(data = dt_houses, aes(x = furnishingstatus)) + 
-  geom_density() + 
-  theme_minimal()
-```
-
-```{r}
-ggplot(data = dt_houses, aes(x = price)) + 
-  geom_density() + 
-  theme_minimal()
-```
 
 ```{r}
 
@@ -201,15 +219,6 @@ Engineer a minimum of two new features based on your data exploration or on theo
 
 ***
 
-## Submission
-
-Hand in the entire coursework as one reproducible R notebook along with the dataset(s) you used. Your reader must be in a position to rerun all of your code and to reproduce all of your computations and plots. 
-
-Before your hand in your notebook: Run the entire script (without errors), hit *preview* to create the notebook and inspect it in your browser for any missing content/visual glitches. Zip up your notebook (html file) and your dataset, rename the ZIP file with your name and student ID and upload it to StudIP before the deadline.
-
-You may submit your coursework before the deadline and update/re-upload your submission as often as you wish until the deadline. I will consider the most recent file.
-
-## Organizational Issues
 
 You may work in groups of two. Both group members must be able to explain the entire work/codebase.
 
