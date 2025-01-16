@@ -148,7 +148,7 @@ This is interesting, how does area affect price of the house. We will plot it wi
 
 ```{r}
 ggplot() + 
-  geom_point(data = dt_houses, aes(x = area, y = price), color='#000') +
+  geom_point(data = dt_houses, aes(x = area, y = price, color = parking)) +
   scale_y_continuous(labels = label_number(scale = 1e-6, suffix = "M")) + 
   theme_minimal() + 
   theme(axis.line = element_line(color = "#000000"))
@@ -224,7 +224,30 @@ ggplot(data = dt_houses, aes(y = price, x = area)) +
   theme(axis.line = element_line(color = "#000000"))
 ```
 
-I think that would be enough exloration and we can start with our first model.
+We can also take a look on some pie charts:
+
+```{r}
+
+dt_mainroad_counts <- as.data.frame(table(dt_houses$mainroad)) #table() - creates frequency table
+colnames(dt_mainroad_counts) <- c("mainroad_status", "count")
+dt_mainroad_counts$percentage <- round(dt_mainroad_counts$count / sum(dt_mainroad_counts$count) * 100, 1)
+
+ggplot(data = dt_mainroad_counts, aes(x = "", y = count, fill = mainroad_status)) +
+  geom_bar(stat = "identity", width = 1, color = "white") +
+  coord_polar("y", start = 0) +
+  geom_text(aes(label = paste0(percentage, "%")), 
+            position = position_stack(vjust = 0.5), color = "white", size = 4) +  
+  theme_void() +  
+  scale_fill_manual(values = c("#F1B147", "#47B1F1")) + 
+  labs(
+    title = "Distribution of Mainroad Status",
+    fill = "Mainroad Status"
+  )
+
+```
+
+
+I think that would be enough exlporation and we can start with our first model.
 
 # Models 1 & 2
 
