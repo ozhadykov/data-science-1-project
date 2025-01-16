@@ -220,21 +220,5 @@ Engineer a minimum of two new features based on your data exploration or on theo
 ***
 
 
-You may work in groups of two. Both group members must be able to explain the entire work/codebase.
-
-The coursework is guided. You must set up at least two consultations: One before Christmas to discuss your problem/dataset and another one week before the deadline at the latest to discuss your exploration and modelling. The consultations can be online or in person. If you require/desire more consultations, feel free to contact me or approach me after class.
-
-## Plagiarism
-
-You must be able to explain every code chunk in your script. You may use code from the course scripts and the assignments, i.e. build on your work throughout the semester. Previous submissions attest to the success of this strategy and examples are available online as a guide. 
-
-If you employ models or methods not covered in this course, be prepared to be quizzed on them. Failure to explain your code or outside material in the oral exam will result in a fail in both the coursework and the oral exam.
-
-## Grading
-
-The coursework should reflect your ability to engage in the various steps of data processing (collection, preparation, exploration, modelling, evaluation, feature engineering) in R. Explain yourself in the text that accompanies your code and do not remove parts that “did not yield good results”. The predictive performance of your model is not graded but your ability to inquire into your data in R.
-
-
-
 
 
