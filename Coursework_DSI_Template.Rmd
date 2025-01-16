@@ -148,13 +148,13 @@ This is interesting, how does area affect price of the house. We will plot it wi
 
 ```{r}
 ggplot() + 
-  geom_point(data = dt_houses, aes(x = area, y = price)) +
+  geom_point(data = dt_houses, aes(x = area, y = price), color='#000') +
   scale_y_continuous(labels = label_number(scale = 1e-6, suffix = "M")) + 
   theme_minimal() + 
   theme(axis.line = element_line(color = "#000000"))
 ```
 
-This looks nice, but we do not have any knowledge about areas, because they are mostly "ids" and they do not necessary contain "area-value" inside.
+This looks nice, and it is also logical, more space, higher price.
 
 But, now I have the simplest idea, how does amount of bedrooms correlates with the price.
 
@@ -166,7 +166,7 @@ ggplot(data = dt_houses, aes(x = factor(bedrooms), y = price)) +
 
 We can see, that on average, more bedrooms, means higher price, but I think there is not really strong relationship between this two variables.
 
-Also it would be great to take a look at a bedrooms histrogram:
+Also it would be great to take a look at a bedrooms histogram:
 
 ```{r}
 ggplot(data = dt_houses, aes(x = bedrooms)) + 
@@ -188,30 +188,53 @@ Let's also have a look at density and mean value of a stories:
 ```{r}
 ggplot(data = dt_houses, aes(x = stories)) + 
   geom_histogram(fill="#2f9e44", color="#2f9e44", alpha=0.25) + 
-  geom_vline(xintercept = mean(dt_houses$bedrooms), linetype="dashed") + 
+  geom_vline(xintercept = mean(dt_houses$stories), linetype="dashed") + 
   theme_minimal() + 
   theme(axis.line = element_line(color = "#000000"))
 ```
+
+```{r}
+mean(dt_houses$stories)
+```
+
+It is interesting how much real estate furnished or not
+
+```{r}
+ggplot(data = dt_houses, aes(x = factor(furnishingstatus), fill = factor(furnishingstatus))) + 
+  geom_bar(color="#ced4da", alpha=0.25) + 
+  scale_fill_viridis_d(option = "D") + 
+  labs(title = "Bar Chart with Different Colors", 
+       x = "Furnishing Status", 
+       y = "Count") + 
+  theme_minimal() + 
+  theme(axis.line = element_line(color = "#000000"))
+```
+
+Now, it would be great, to look at price and area distribution in differently furnished properties
+
 
 ```{r}
 ggplot(data = dt_houses, aes(y = price, x = area)) + 
-  geom_point() +
+  geom_point(data = dt_houses, aes(y = price, x = area, color = bedrooms)) +
+  geom_hline(yintercept = mean(dt_houses$price), linetype='dashed') + 
   facet_grid(.~furnishingstatus) +
   scale_y_continuous(labels = label_number(scale = 1e-6, suffix = "M")) +
+  scale_color_distiller(type = "seq", palette = "Greens") +
   theme_minimal() + 
   theme(axis.line = element_line(color = "#000000"))
 ```
 
-
-```{r}
-
-```
+I think that would be enough eploration and we can start with our first model.
 
 # Models 1 & 2
 
 Run two regression or classification models with a minimum of 5 (identical!) inputs and evaluate them in detail: Compare their performance on your data (appropriate performance metric, performance on specific regions of the input/output space) and identify potential problems/shortcomings. 
 
 If you tune a model (e.g. threshold of a logistic regression) for some metric, use only the final tuned version in the comparison with the other model. 
+
+First, I would like to start pretty simple with linear model.
+
+I consider to take this variables in my model: area, bedrooms, hotwaterheating, stories, mainroad, parking
 
 # Feature Engineering
 
