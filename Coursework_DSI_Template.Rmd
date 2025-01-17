@@ -92,6 +92,8 @@ library(RColorBrewer)
 library(svglite)
 library(viridis)
 library(scales)
+library(rpart)
+library(rpart.plot)
 ```
 
 I found some helpful functions in R, so we could have a look on our data. We will start with a structure, than we will get some statistic data and take a *head()* of the data
@@ -269,19 +271,55 @@ price_lm <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditio
 summary(price_lm)
 ```
 
-We got 0.64 R-squared, which is not that bad for a model just made up. 
+We got 0.64 R-squared, which is not that bad for a model just made up. But that's not all, I will try to do better here, but first, another model.
+
+```{r}
+price_lm_mse <- mean(price_lm$residuals^2)
+
+price_lm_mse
+```
+
 
 ## Tree Model
 
 I think this model could perform better, because there some variables which can affect this model not only linearly, but the other way, in this case tree model can show better performance
 
 ```{r}
+prices_tree <- rpart(data = dt_houses, formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms, method = 'anova')
 
+prp(prices_tree, digits = 3)
+```
+
+```{r}
+printcp(prices_tree)
+```
+
+```{r}
+
+price_tree_mse <- mean()
 ```
 
 
+## Comparing two models
+
 
 # Feature Engineering
+
+Now I would like to upgrade my Linear model. I think that furnishing status should be treated as a factor variable, so I am going to try to upgrade my model through factor variable:
+
+```{r}
+dt_houses$furnishingstatus_factor <- factor(dt_houses$furnishingstatus)
+```
+
+
+Now try to run the model with a new feature.
+
+```{r}
+price_lm <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus_factor + bathrooms, data = dt_houses)
+
+summary(price_lm)
+```
+
 
 Engineer a minimum of two new features based on your data exploration or on theoretical considerations. Add these features to your models and reevaluate their performance on the same performance metrics as before.
 
