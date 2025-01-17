@@ -257,7 +257,29 @@ If you tune a model (e.g. threshold of a logistic regression) for some metric, u
 
 First, I would like to start pretty simple with linear model.
 
-I consider to take this variables in my model: area, bedrooms, hotwaterheating, stories, mainroad, parking
+I consider to take this variables in my model: area, bedrooms, bathrooms, hotwaterheating, airconditioning, stories, mainroad, parking and furnishingstatus.
+
+## Linear model
+
+I will use lm function in R to find needed beta coefficients and create my model
+
+```{r}
+price_lm <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms, data = dt_houses)
+
+summary(price_lm)
+```
+
+We got 0.64 R-squared, which is not that bad for a model just made up. 
+
+## Tree Model
+
+I think this model could perform better, because there some variables which can affect this model not only linearly, but the other way, in this case tree model can show better performance
+
+```{r}
+
+```
+
+
 
 # Feature Engineering
 
