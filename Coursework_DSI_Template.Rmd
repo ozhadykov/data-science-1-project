@@ -287,7 +287,7 @@ I think this model could perform better, because there some variables which can 
 ```{r}
 prices_tree <- rpart(data = dt_houses, formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms, method = 'anova')
 
-prp(prices_tree, digits = 3)
+prp(prices_tree, digits = -3)
 ```
 
 ```{r}
@@ -295,8 +295,26 @@ printcp(prices_tree)
 ```
 
 ```{r}
+prices_tree
+```
 
-price_tree_mse <- mean()
+```{r}
+plotcp(prices_tree)
+```
+
+
+```{r}
+prices_tree_min_cp <- prices_tree$cptable[which.min(prices_tree$cptable[, "xerror"]), "CP"]
+model_tree <- prune(prices_tree, cp = prices_tree_min_cp )
+prp(prices_tree,digits = -3)
+```
+
+
+```{r}
+prices_tree_pred <- predict(prices_tree, dt_houses[, c("area","bathrooms", "bedrooms", "hotwaterheating", "airconditioning", "parking", "stories", "mainroad", "furnishingstatus")])
+prices_tree_mse <- mean((dt_houses$price - prices_tree_pred)^2)
+
+prices_tree_mse
 ```
 
 
