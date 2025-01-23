@@ -61,7 +61,7 @@ This project addresses a regression problem because the objective is to predict 
 Now we are going to import our dataset into this project.
 
 ```{r}
-dt_houses <- fread(file = "./Datasets/Regression_set.csv")
+dt_houses <- fread(file = "./datasets/Regression_set.csv")
 ```
 
 <br>
@@ -75,8 +75,6 @@ nas
 That looks great, now we can explore our dataset :)
 
 # Exploration
-
-Explore your data by means of select summary statistics and visualizations and present interesting findings to your reader. 
 
 Before we will explore our data, I want to import all libraries, which we will probably use:
 
@@ -185,7 +183,7 @@ mean(dt_houses$bedrooms)
 
 Here we can see, that the most of the properties tend to have 2, 3 or 4 rooms. 
 
-Let's also have a look at density and mean value of a stories:
+Let's also have a look at histogram of stroies: 
 
 ```{r}
 ggplot(data = dt_houses, aes(x = stories)) + 
@@ -212,6 +210,8 @@ ggplot(data = dt_houses, aes(x = factor(furnishingstatus), fill = factor(furnish
   theme(axis.line = element_line(color = "#000000"))
 ```
 
+We can see, that most of the houses are semi-furnished.
+
 Now, it would be great, to look at price and area distribution in differently furnished properties
 
 
@@ -225,6 +225,8 @@ ggplot(data = dt_houses, aes(y = price, x = area)) +
   theme_minimal() + 
   theme(axis.line = element_line(color = "#000000"))
 ```
+
+Also, on average, you can notice, that unfurnished houses, are less expencive.
 
 We can also take a look on some pie charts:
 
@@ -249,13 +251,9 @@ ggplot(data = dt_mainroad_counts, aes(x = "", y = count, fill = mainroad_status)
 ```
 
 
-I think that would be enough exlporation and we can start with our first model.
+I think that would be enough exploration and we can start with our first model.
 
 # Models 1 & 2
-
-Run two regression or classification models with a minimum of 5 (identical!) inputs and evaluate them in detail: Compare their performance on your data (appropriate performance metric, performance on specific regions of the input/output space) and identify potential problems/shortcomings. 
-
-If you tune a model (e.g. threshold of a logistic regression) for some metric, use only the final tuned version in the comparison with the other model. 
 
 First, I would like to start pretty simple with linear model.
 
@@ -266,12 +264,14 @@ I consider to take this variables in my model: area, bedrooms, bathrooms, hotwat
 I will use lm function in R to find needed beta coefficients and create my model
 
 ```{r}
-price_lm <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms, data = dt_houses)
+price_lm <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea, data = dt_houses)
 
 summary(price_lm)
 ```
 
 We got 0.64 R-squared, which is not that bad for a model just made up. But that's not all, I will try to do better here, but first, another model.
+
+But I would like to measure performance of my models with MSE, so I will calculate MSE for linear model.
 
 ```{r}
 price_lm_mse <- mean(price_lm$residuals^2)
@@ -285,7 +285,7 @@ price_lm_mse
 I think this model could perform better, because there some variables which can affect this model not only linearly, but the other way, in this case tree model can show better performance
 
 ```{r}
-prices_tree <- rpart(data = dt_houses, formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms, method = 'anova')
+prices_tree <- rpart(data = dt_houses, formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea, method = 'anova')
 
 prp(prices_tree, digits = -3)
 ```
@@ -309,9 +309,11 @@ model_tree <- prune(prices_tree, cp = prices_tree_min_cp )
 prp(prices_tree,digits = -3)
 ```
 
+after we pruned the tree, let's calculate the MSE for the tree model
+
 
 ```{r}
-prices_tree_pred <- predict(prices_tree, dt_houses[, c("area","bathrooms", "bedrooms", "hotwaterheating", "airconditioning", "parking", "stories", "mainroad", "furnishingstatus")])
+prices_tree_pred <- predict(prices_tree, dt_houses[, c("area","bathrooms", "bedrooms", "hotwaterheating", "airconditioning", "parking", "stories", "mainroad", "furnishingstatus", "guestroom", "basement", "prefarea")])
 prices_tree_mse <- mean((dt_houses$price - prices_tree_pred)^2)
 
 prices_tree_mse
@@ -320,22 +322,88 @@ prices_tree_mse
 
 ## Comparing two models
 
-
-# Feature Engineering
-
-Now I would like to upgrade my Linear model. I think that furnishing status should be treated as a factor variable, so I am going to try to upgrade my model through factor variable:
+price linear model has a MSE of 
 
 ```{r}
-dt_houses$furnishingstatus_factor <- factor(dt_houses$furnishingstatus)
+price_lm_mse
+```
+
+price tree model has a MSE of 
+
+```{r}
+prices_tree_mse
 ```
 
 
-Now try to run the model with a new feature.
+It is surprising for me, as for a person who does not have a lot of experience in modelling, that linear model performs better than tree model by approx. 22%. 
 
 ```{r}
-price_lm <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus_factor + bathrooms, data = dt_houses)
+100 - price_lm_mse / prices_tree_mse * 100
+```
 
-summary(price_lm)
+
+# Feature Engineering
+
+Here I would like to try all ideas and observations, which I've had through my course work. I've seen two columns, such as "bedrooms" and "bathrooms", they store numerical value, amount of this kind of rooms. It makes sense for me to create a new column "room_count", because it may have bigger impact on the performance.
+
+```{r}
+dt_houses[, 'room_count' := bathrooms + bedrooms]
+```
+
+
+Let's try Model with a new variable
+
+```{r}
+price_lm_2 <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea + room_count, data = dt_houses)
+
+summary(price_lm_2)
+mean(price_lm_2$residuals^2)
+```
+
+this is absolutely the same.
+
+what if we will try to bring the area variable closer to Gaussian with log transformation
+
+```{r}
+dt_houses[, area_log := log(area)]
+```
+
+
+little visualisation:
+
+```{r}
+ggplot(data = dt_houses, aes(x = area_log)) + 
+  geom_density(fill="#f1b147", color="#f1b147", alpha=0.25) + 
+  labs(
+    x = 'Price',
+    y = 'Density'
+  ) +
+  theme_minimal() + 
+  theme(axis.line = element_line(color = "#000000"))
+```
+
+and try model again :)
+
+```{r}
+price_lm_2 <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea + area_log, data = dt_houses)
+
+summary(price_lm_2)
+mean(price_lm_2$residuals^2)
+```
+
+it performs approx 0.4% better, if we look at R-Squared error.
+
+```{r}
+dt_houses_2 <- dt_houses
+
+#dt_cars[, noAWD := 0][AWD==0, noAWD :=1]
+
+dt_houses_2[, test_col := 0][hotwaterheating == 'no', test_col := 1]
+
+price_lm_2 <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea + test_col, data = dt_houses_2)
+
+summary(price_lm_2)
+mean(price_lm_2$residuals^2)
 ```
 
 
