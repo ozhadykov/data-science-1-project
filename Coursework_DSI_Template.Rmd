@@ -391,14 +391,14 @@ summary(price_lm_2)
 mean(price_lm_2$residuals^2)
 ```
 
-it performs approx 0.4% better, if we look at R-Squared error.
+it performs approx 0.4% better, if we look at R-Squared error. MSE also got for 0.2e+12 better.
 
 ```{r}
 dt_houses_2 <- dt_houses
 
 #dt_cars[, noAWD := 0][AWD==0, noAWD :=1]
 
-dt_houses_2[, test_col := 0][hotwaterheating == 'no', test_col := 1]
+dt_houses_2[, test_col := 0][guestroom == 'no', test_col := 1]
 
 price_lm_2 <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea + test_col, data = dt_houses_2)
 
