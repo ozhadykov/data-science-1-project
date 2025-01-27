@@ -114,7 +114,7 @@ head(dt_houses)
 
 I would like to start from density of a main values, which are from my domain knowledge are important in price of the properties
 
-We will start with price density: 
+Price density: 
 
 ```{r}
 ggplot(data = dt_houses, aes(x = price)) + 
@@ -129,7 +129,9 @@ ggplot(data = dt_houses, aes(x = price)) +
   theme(axis.line = element_line(color = "#000000"))
 ```
 
-Also it would be greate to have a look at area density:
+It is very clear, that most of the prices are between 0 and ~ 5 million.
+
+Area density:
 
 ```{r}
 ggplot(data = dt_houses, aes(x = area)) + 
@@ -141,10 +143,10 @@ ggplot(data = dt_houses, aes(x = area)) +
   theme_minimal() + 
   theme(axis.line = element_line(color = "#000000"))
 ```
-
+Area density looks a little bit more centered, but still skewed to the left.
 
 <br>
-This is interesting, how does area affect price of the house. We will plot it with points, where price is on the y-axis and area on x-axis.
+How does area affect price of the house? We will plot it with points, where price is on the y-axis and area on x-axis.
 
 ```{r}
 ggplot() + 
@@ -154,7 +156,7 @@ ggplot() +
   theme(axis.line = element_line(color = "#000000"))
 ```
 
-This looks nice, and it is also logical, more space, higher price.
+This looks nice, and it is also logical, more space, higher price. But if we take a look at parking places, there is hard to see a trend.
 
 But, now I have the simplest idea, how does amount of bedrooms correlates with the price.
 
@@ -175,7 +177,7 @@ ggplot(data = dt_houses, aes(x = bedrooms)) +
   theme_minimal() + 
   theme(axis.line = element_line(color = "#000000"))
 ```
-Also I want to show you the mean of the bedrooms:
+mean of the bedrooms:
 ```{r}
 mean(dt_houses$bedrooms)
 ```
@@ -183,7 +185,7 @@ mean(dt_houses$bedrooms)
 
 Here we can see, that the most of the properties tend to have 2, 3 or 4 rooms. 
 
-Let's also have a look at histogram of stroies: 
+Let's have a look at histogram of stories: 
 
 ```{r}
 ggplot(data = dt_houses, aes(x = stories)) + 
@@ -197,7 +199,29 @@ ggplot(data = dt_houses, aes(x = stories)) +
 mean(dt_houses$stories)
 ```
 
-It is interesting how much real estate furnished or not
+we can see, that most of the houses are 1-2 stories.
+
+Bathrooms are also interesting variable, so let's take a look at histogram and a Boxplot bathrooms and price:
+```{r}
+ggplot(data = dt_houses, aes(x = bathrooms)) + 
+  geom_histogram(fill="#2f9e44", color="#2f9e44", alpha=0.25) + 
+  geom_vline(xintercept = mean(dt_houses$bathrooms), linetype="dashed") + 
+  theme_minimal() + 
+  theme(axis.line = element_line(color = "#000000"))
+```
+
+
+```{r}
+ggplot(data = dt_houses, aes(x = factor(bathrooms), y = price)) +
+  geom_boxplot() + 
+  theme_minimal() 
+```
+
+here it is also almost obvious, that, if we have more bathrooms, price will be also up. Only one disadvantage, that in my dataset I do not have enough data about properties with 3 or 4 bathrooms, I have some on 3, but really luck on 4.
+
+Furnishing is also important, many people search for apartments with furniture, but furniture could be not in a best shape or buyer may do not like the style. So from my opinion, it is not as strong(in prediction), as for example area.
+
+How much real estate furnished or not:
 
 ```{r}
 ggplot(data = dt_houses, aes(x = factor(furnishingstatus), fill = factor(furnishingstatus))) + 
@@ -210,7 +234,7 @@ ggplot(data = dt_houses, aes(x = factor(furnishingstatus), fill = factor(furnish
   theme(axis.line = element_line(color = "#000000"))
 ```
 
-We can see, that most of the houses are semi-furnished.
+We can see, that most of the houses are semi-furnished. which is also logical, because when we sell a house or apartment, probably we would take in most of the cases the most valuable things for us and furniture included.
 
 Now, it would be great, to look at price and area distribution in differently furnished properties
 
@@ -226,7 +250,7 @@ ggplot(data = dt_houses, aes(y = price, x = area)) +
   theme(axis.line = element_line(color = "#000000"))
 ```
 
-Also, on average, you can notice, that unfurnished houses, are less expencive.
+Also, on average, you can notice, that unfurnished houses, are less expensive.
 
 We can also take a look on some pie charts:
 
@@ -250,6 +274,31 @@ ggplot(data = dt_mainroad_counts, aes(x = "", y = count, fill = mainroad_status)
 
 ```
 
+Almost 86 percent of houses have main road, so maybe this won't be a strong predictor variable.
+
+
+```{r}
+
+dt_airconditioning_counts <- as.data.frame(table(dt_houses$airconditioning)) #table() - creates frequency table
+colnames(dt_airconditioning_counts) <- c("airconditioning_status", "count")
+dt_airconditioning_counts$percentage <- round(dt_airconditioning_counts$count / sum(dt_airconditioning_counts$count) * 100, 1)
+
+ggplot(data = dt_airconditioning_counts, aes(x = "", y = count, fill = airconditioning_status)) +
+  geom_bar(stat = "identity", width = 1, color = "white") +
+  coord_polar("y", start = 0) +
+  geom_text(aes(label = paste0(percentage, "%")), 
+            position = position_stack(vjust = 0.5), color = "white", size = 4) +  
+  theme_void() +  
+  scale_fill_manual(values = c("#F1B147", "#47B1F1")) + 
+  labs(
+    title = "Distribution of Airconditioning status",
+    fill = "Airconditioning Status"
+  )
+
+```
+
+Here 68.4 percent has airconditioning, but I do not know, how it will affect predictions.
+
 
 I think that would be enough exploration and we can start with our first model.
 
@@ -269,7 +318,7 @@ price_lm <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditio
 summary(price_lm)
 ```
 
-We got 0.64 R-squared, which is not that bad for a model just made up. But that's not all, I will try to do better here, but first, another model.
+We got 0.68 R-squared, which is not that bad for a model just made up. But that's not all, I will try to do better here, but first, another model.
 
 But I would like to measure performance of my models with MSE, so I will calculate MSE for linear model.
 
@@ -294,9 +343,13 @@ prp(prices_tree, digits = -3)
 printcp(prices_tree)
 ```
 
+Now I have biult with the help of rpart tree model based on my dataset, let explore it:
+
 ```{r}
 prices_tree
 ```
+
+Now it would be greate to prune the tree, because I do not want my tree to overfit:
 
 ```{r}
 plotcp(prices_tree)
@@ -344,7 +397,13 @@ It is surprising for me, as for a person who does not have a lot of experience i
 
 # Feature Engineering
 
+## Feature 1
+#### calculating overall amount of rooms
+
 Here I would like to try all ideas and observations, which I've had through my course work. I've seen two columns, such as "bedrooms" and "bathrooms", they store numerical value, amount of this kind of rooms. It makes sense for me to create a new column "room_count", because it may have bigger impact on the performance.
+
+### Linear Model
+
 
 ```{r}
 dt_houses[, 'room_count' := bathrooms + bedrooms]
@@ -360,9 +419,20 @@ summary(price_lm_2)
 mean(price_lm_2$residuals^2)
 ```
 
-this is absolutely the same.
+this is absolutely the same. We can see, that room_count has NA, that means, this variable do not make this model any better.
 
-what if we will try to bring the area variable closer to Gaussian with log transformation
+### Tree Model
+
+### Comparing
+
+
+## Feature 2
+#### Moving area closer to Gaussian (log transformation)
+
+what if we will try to bring the area variable closer to Gaussian with log transformation, because area density is skewd to the left, log transformation can help us to normalise the variable.
+
+### Linear Model
+
 
 ```{r}
 dt_houses[, area_log := log(area)]
@@ -393,21 +463,78 @@ mean(price_lm_2$residuals^2)
 
 it performs approx 0.4% better, if we look at R-Squared error. MSE also got for 0.2e+12 better.
 
+### Tree Model
+
+### Comparing
+
+
+I think, this could be a good Idea to take a loot at a correlation between variables, but from Data exploration I can already say, that area correlates with price.
+
+Here we are, correlation plot:
+
 ```{r}
-dt_houses_2 <- dt_houses
+ggcorrplot(corr = cor(dt_houses[, .(price, area, bedrooms, bathrooms, stories, parking)]), 
+           hc.order = TRUE,
+           lab = TRUE)
+```
 
-#dt_cars[, noAWD := 0][AWD==0, noAWD :=1]
+Hm, correlation plot does not look as great, as I have expected, but the strongest correlation with price is area and amount of bathrooms. 
 
-dt_houses_2[, test_col := 0][guestroom == 'no', test_col := 1]
+## Feature 3
+##### Treat bathrooms as a factor variable
 
-price_lm_2 <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea + test_col, data = dt_houses_2)
+I got an Idea, we have bathrooms, and they are in range from 1 to 4.What if we will treat each amount of bathrooms as a factor variable.
+
+### Linear Model
+
+
+```{r}
+# creating factor
+dt_houses[, count_bathrooms_1 := 0][bathrooms == 1, count_bathrooms_1 := 1]
+dt_houses[, count_bathrooms_2 := 0][bathrooms == 2, count_bathrooms_2 := 1]
+dt_houses[, count_bathrooms_3 := 0][bathrooms == 3, count_bathrooms_3 := 1]
+dt_houses[, count_bathrooms_4 := 0][bathrooms == 4, count_bathrooms_4 := 1]
+
+
+price_lm_2 <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + guestroom + basement + prefarea + count_bathrooms_1 + count_bathrooms_2 + count_bathrooms_3 + count_bathrooms_4 + area_log, data = dt_houses)
 
 summary(price_lm_2)
 mean(price_lm_2$residuals^2)
 ```
 
 
-Engineer a minimum of two new features based on your data exploration or on theoretical considerations. Add these features to your models and reevaluate their performance on the same performance metrics as before.
+```{r}
+1.097798e+12 - 1.089709e+12
+```
+
+Yes! Now model creates, 0.008089e+12 less MSE. Slight improvement, but still great.
+
+### Tree Model
+
+### Comparing
+
+
+## Feature 4
+#### Airconditioning as one-hot encoding
+
+This could be the case, because if this dataset was gathered from a hot area, where summer is usually very warm, airconditioning could be very important factor, while buying a house and it will make place with it more attractive, but when there is not any, it could make place worse. 
+
+For example, if there is airconditioning there could be Beta = x, but if there is not, it is not 0, it is -y value from the property.
+
+Let's do this
+
+```{r}
+# creating factors
+dt_houses[, airconditioning_integer := 0][airconditioning == 'yes', airconditioning_yes := 1]
+dt_houses[, airconditioning_integer := 0][airconditioning == 'no', airconditioning_no := 1]
+
+# calculating and running model
+price_lm_2 <- lm(formula = price ~ + area + bedrooms + hotwaterheating + stories + mainroad + parking + furnishingstatus + guestroom + basement + prefarea + count_bathrooms_1 + count_bathrooms_2 + count_bathrooms_3 + count_bathrooms_4 + area_log + airconditioning_yes + airconditioning_no, data = dt_houses)
+
+summary(price_lm_2)
+mean(price_lm_2$residuals^2)
+
+```
 
 ***
 
