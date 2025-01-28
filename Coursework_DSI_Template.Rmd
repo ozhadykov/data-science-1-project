@@ -306,7 +306,7 @@ I think that would be enough exploration and we can start with our first model.
 
 First, I would like to start pretty simple with linear model.
 
-I consider to take this variables in my model: area, bedrooms, bathrooms, hotwaterheating, airconditioning, stories, mainroad, parking and furnishingstatus.
+I consider to take all variables to my model, because they all seem to be very important.
 
 ## Linear model
 
@@ -455,7 +455,7 @@ ggplot(data = dt_houses, aes(x = area_log)) +
 and try model again :)
 
 ```{r}
-price_lm_2 <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea + area_log, data = dt_houses)
+price_lm_2 <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea + room_count + area_log, data = dt_houses)
 
 summary(price_lm_2)
 mean(price_lm_2$residuals^2)
@@ -496,7 +496,7 @@ dt_houses[, count_bathrooms_3 := 0][bathrooms == 3, count_bathrooms_3 := 1]
 dt_houses[, count_bathrooms_4 := 0][bathrooms == 4, count_bathrooms_4 := 1]
 
 
-price_lm_2 <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + guestroom + basement + prefarea + count_bathrooms_1 + count_bathrooms_2 + count_bathrooms_3 + count_bathrooms_4 + area_log, data = dt_houses)
+price_lm_2 <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + guestroom + basement + prefarea + count_bathrooms_1 + count_bathrooms_2 + count_bathrooms_3 + count_bathrooms_4 + room_count + area_log, data = dt_houses)
 
 summary(price_lm_2)
 mean(price_lm_2$residuals^2)
@@ -529,7 +529,7 @@ dt_houses[, airconditioning_integer := 0][airconditioning == 'yes', aircondition
 dt_houses[, airconditioning_integer := 0][airconditioning == 'no', airconditioning_no := 1]
 
 # calculating and running model
-price_lm_2 <- lm(formula = price ~ + area + bedrooms + hotwaterheating + stories + mainroad + parking + furnishingstatus + guestroom + basement + prefarea + count_bathrooms_1 + count_bathrooms_2 + count_bathrooms_3 + count_bathrooms_4 + area_log + airconditioning_yes + airconditioning_no, data = dt_houses)
+price_lm_2 <- lm(formula = price ~ + area + bedrooms +  airconditioning + hotwaterheating + stories + mainroad + parking + furnishingstatus + guestroom + basement + prefarea + count_bathrooms_1 + count_bathrooms_2 + count_bathrooms_3 + count_bathrooms_4 + room_count + area_log + airconditioning_yes + airconditioning_no, data = dt_houses)
 
 summary(price_lm_2)
 mean(price_lm_2$residuals^2)
