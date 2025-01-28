@@ -1,0 +1,765 @@
+---
+title: "Coursework - Data Science I"
+author: "Omar Zhadykov, 220220503"
+output:
+  html_notebook:
+    fig_width: 10
+    theme: spacelab
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  word_document:
+    toc: yes
+    toc_depth: '3'
+  pdf_document: default
+  html_document:
+    fig_width: 10
+    theme: spacelab
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+---
+
+<script>
+$(document).ready(function() {
+  $items = $('div#TOC li');
+  $items.each(function(idx) {
+    num_ul = $(this).parentsUntil('#TOC').length;
+    $(this).css({'text-indent': num_ul * 10, 'padding-left': 0});
+  });
+
+});
+</script>
+
+```{r setup, warning=FALSE, message=FALSE, echo=FALSE}
+library(svglite)
+library(knitr)
+suppressPackageStartupMessages(library(data.table))
+library(ggplot2)
+knitr::opts_chunk$set(dev = "svglite")
+
+# Put your dataset in the same folder as your R file. This code will set your working directory for this notebook to the folder where the R file is stored. This way I can rerun your code without modifications.
+
+library(rstudioapi)
+setwd(dirname(getActiveDocumentContext()$path))
+```
+
+# Introduction
+
+This coursework focuses on housing prices, with the main objective being to predict the price of a property based on various inputs. The inputs include features such as the area, the number and types of rooms, and additional factors like the availability of a main road, hot water heating, and more.
+
+The dependent variable is the price, as it is the primary concern for most people searching for a house. The goal of this work is to predict the price based on diverse inputs, which consist of mixed data types, such as:
+
+  - Numerical values
+  - Text-based responses like "yes" or "no"
+  - Categories for furnishing status, including "furnished," "semi-furnished," or "non-furnished."
+
+This project addresses a regression problem because the objective is to predict a numeric value—in this case, the price of the property.
+
+# Collection / Preparation 
+
+Now we are going to import our dataset into this project.
+
+```{r}
+dt_houses <- fread(file = "./datasets/Regression_set.csv")
+```
+
+<br>
+I would like to check, if i have some nullish data in my dataset. I think it is a good idea to go through all rows and colums and check, if there is a NA. I want to check it with built-in function in R *complete.cases(data_table)*. This function returns TRUE or FALSE if row contains a NA value.
+
+```{r}
+nas <- dt_houses[!complete.cases(dt_houses)]
+nas
+```
+
+That looks great, now we can explore our dataset :)
+
+# Exploration
+
+Before we will explore our data, I want to import all libraries, which we will probably use:
+
+```{r}
+library(data.table)
+library(ggcorrplot)
+library(ggExtra)
+library(ggplot2)
+library(ggridges)
+library(ggsci)
+library(ggthemes)
+library(RColorBrewer)
+library(svglite)
+library(viridis)
+library(scales)
+library(rpart)
+library(rpart.plot)
+```
+
+I found some helpful functions in R, so we could have a look on our data. We will start with a structure, than we will get some statistic data and take a *head()* of the data
+
+```{r}
+str(dt_houses)
+```
+<br>
+Statistic data:
+```{r}
+summary(dt_houses[, .(price, area, bedrooms, bathrooms, stories, parking)])
+```
+
+<br>
+and this is a sample of our dataset:
+
+```{r}
+head(dt_houses)
+```
+
+I would like to start from density of a main values, which are from my domain knowledge are important in price of the properties
+
+Price density: 
+
+```{r}
+ggplot(data = dt_houses, aes(x = price)) + 
+  geom_density(fill="#f1b147", color="#f1b147", alpha=0.25) + 
+  labs(
+    x = 'Price',
+    y = 'Density'
+  ) +
+  geom_vline(xintercept = mean(dt_houses$price), linetype="dashed") + 
+  scale_x_continuous(labels = label_number(scale = 1e-6, suffix = "M")) + 
+  theme_minimal() + 
+  theme(axis.line = element_line(color = "#000000"))
+```
+
+It is very clear, that most of the prices are between 0 and ~ 5 million.
+
+Area density:
+
+```{r}
+ggplot(data = dt_houses, aes(x = area)) + 
+  geom_density(fill="#f1b147", color="#f1b147", alpha=0.25) + 
+  labs(
+    x = 'Price',
+    y = 'Density'
+  ) +
+  theme_minimal() + 
+  theme(axis.line = element_line(color = "#000000"))
+```
+Area density looks a little bit more centered, but still skewed to the left.
+
+<br>
+How does area affect price of the house? We will plot it with points, where price is on the y-axis and area on x-axis.
+
+```{r}
+ggplot() + 
+  geom_point(data = dt_houses, aes(x = area, y = price, color = parking)) +
+  scale_y_continuous(labels = label_number(scale = 1e-6, suffix = "M")) + 
+  theme_minimal() + 
+  theme(axis.line = element_line(color = "#000000"))
+```
+
+This looks nice, and it is also logical, more space, higher price. But if we take a look at parking places, there is hard to see a trend.
+
+But, now I have the simplest idea, how does amount of bedrooms correlates with the price.
+
+```{r}
+ggplot(data = dt_houses, aes(x = factor(bedrooms), y = price)) +
+  geom_boxplot() + 
+  theme_minimal() 
+```
+
+We can see, that on average, more bedrooms, means higher price, but I think there is not really strong relationship between this two variables.
+
+Also it would be great to take a look at a bedrooms histogram:
+
+```{r}
+ggplot(data = dt_houses, aes(x = bedrooms)) + 
+  geom_histogram(fill="#2f9e44", color="#2f9e44", alpha=0.25) + 
+  geom_vline(xintercept = mean(dt_houses$bedrooms), linetype="dashed") + 
+  theme_minimal() + 
+  theme(axis.line = element_line(color = "#000000"))
+```
+mean of the bedrooms:
+```{r}
+mean(dt_houses$bedrooms)
+```
+
+
+Here we can see, that the most of the properties tend to have 2, 3 or 4 rooms. 
+
+Let's have a look at histogram of stories: 
+
+```{r}
+ggplot(data = dt_houses, aes(x = stories)) + 
+  geom_histogram(fill="#2f9e44", color="#2f9e44", alpha=0.25) + 
+  geom_vline(xintercept = mean(dt_houses$stories), linetype="dashed") + 
+  theme_minimal() + 
+  theme(axis.line = element_line(color = "#000000"))
+```
+
+```{r}
+mean(dt_houses$stories)
+```
+
+we can see, that most of the houses are 1-2 stories.
+
+Bathrooms are also interesting variable, so let's take a look at histogram and a Boxplot bathrooms and price:
+```{r}
+ggplot(data = dt_houses, aes(x = bathrooms)) + 
+  geom_histogram(fill="#2f9e44", color="#2f9e44", alpha=0.25) + 
+  geom_vline(xintercept = mean(dt_houses$bathrooms), linetype="dashed") + 
+  theme_minimal() + 
+  theme(axis.line = element_line(color = "#000000"))
+```
+
+
+```{r}
+ggplot(data = dt_houses, aes(x = factor(bathrooms), y = price)) +
+  geom_boxplot() + 
+  theme_minimal() 
+```
+
+here it is also almost obvious, that, if we have more bathrooms, price will be also up. Only one disadvantage, that in my dataset I do not have enough data about properties with 3 or 4 bathrooms, I have some on 3, but really luck on 4.
+
+Furnishing is also important, many people search for apartments with furniture, but furniture could be not in a best shape or buyer may do not like the style. So from my opinion, it is not as strong(in prediction), as for example area.
+
+How much real estate furnished or not:
+
+```{r}
+ggplot(data = dt_houses, aes(x = factor(furnishingstatus), fill = factor(furnishingstatus))) + 
+  geom_bar(color="#ced4da", alpha=0.25) + 
+  scale_fill_viridis_d(option = "D") + 
+  labs(title = "Bar Chart with Different Colors", 
+       x = "Furnishing Status", 
+       y = "Count") + 
+  theme_minimal() + 
+  theme(axis.line = element_line(color = "#000000"))
+```
+
+We can see, that most of the houses are semi-furnished. which is also logical, because when we sell a house or apartment, probably we would take in most of the cases the most valuable things for us and furniture included.
+
+Now, it would be great, to look at price and area distribution in differently furnished properties
+
+
+```{r}
+ggplot(data = dt_houses, aes(y = price, x = area)) + 
+  geom_point(data = dt_houses, aes(y = price, x = area, color = bedrooms)) +
+  geom_hline(yintercept = mean(dt_houses$price), linetype='dashed') + 
+  facet_grid(.~furnishingstatus) +
+  scale_y_continuous(labels = label_number(scale = 1e-6, suffix = "M")) +
+  scale_color_distiller(type = "seq", palette = "Greens") +
+  theme_minimal() + 
+  theme(axis.line = element_line(color = "#000000"))
+```
+
+Also, on average, you can notice, that unfurnished houses, are less expensive.
+
+We can also take a look on some pie charts:
+
+```{r}
+
+dt_mainroad_counts <- as.data.frame(table(dt_houses$mainroad)) #table() - creates frequency table
+colnames(dt_mainroad_counts) <- c("mainroad_status", "count")
+dt_mainroad_counts$percentage <- round(dt_mainroad_counts$count / sum(dt_mainroad_counts$count) * 100, 1)
+
+ggplot(data = dt_mainroad_counts, aes(x = "", y = count, fill = mainroad_status)) +
+  geom_bar(stat = "identity", width = 1, color = "white") +
+  coord_polar("y", start = 0) +
+  geom_text(aes(label = paste0(percentage, "%")), 
+            position = position_stack(vjust = 0.5), color = "white", size = 4) +  
+  theme_void() +  
+  scale_fill_manual(values = c("#F1B147", "#47B1F1")) + 
+  labs(
+    title = "Distribution of Mainroad Status",
+    fill = "Mainroad Status"
+  )
+
+```
+
+Almost 86 percent of houses have main road, so maybe this won't be a strong predictor variable.
+
+
+```{r}
+
+dt_airconditioning_counts <- as.data.frame(table(dt_houses$airconditioning)) #table() - creates frequency table
+colnames(dt_airconditioning_counts) <- c("airconditioning_status", "count")
+dt_airconditioning_counts$percentage <- round(dt_airconditioning_counts$count / sum(dt_airconditioning_counts$count) * 100, 1)
+
+ggplot(data = dt_airconditioning_counts, aes(x = "", y = count, fill = airconditioning_status)) +
+  geom_bar(stat = "identity", width = 1, color = "white") +
+  coord_polar("y", start = 0) +
+  geom_text(aes(label = paste0(percentage, "%")), 
+            position = position_stack(vjust = 0.5), color = "white", size = 4) +  
+  theme_void() +  
+  scale_fill_manual(values = c("#F1B147", "#47B1F1")) + 
+  labs(
+    title = "Distribution of Airconditioning status",
+    fill = "Airconditioning Status"
+  )
+
+```
+
+Here 68.4 percent has airconditioning, but I do not know, how it will affect predictions.
+
+
+I think that would be enough exploration and we can start with our first model.
+
+# Models 1 & 2
+
+First, I would like to start pretty simple with linear model.
+
+I consider to take all variables to my model, because they all seem to be very important.
+
+But before we start, I want to introduce a data frame, which will be very usefull in the end of this course work.
+
+```{r}
+dt_features_performance <- data.table("price_lm_rmse" = c(0, 0, 0, 0, 0), "price_tree_rmse" = c(0, 0, 0, 0, 0), "feature" = c(0, 1, 2, 3, 4))
+```
+
+
+## Linear model
+
+I will use lm function in R to find needed beta coefficients and create my model
+
+```{r}
+price_lm <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea, data = dt_houses)
+
+summary(price_lm)
+```
+
+We got 0.68 R-squared, which is not that bad for a model just made up. But that's not all, I will try to do better here, but first, another model.
+
+But I would like to measure performance of my models with RMSE, so I will calculate MSE for linear model.
+
+```{r}
+price_lm_rmse <- mean(sqrt(abs(price_lm$residuals)))
+
+price_lm_rmse
+```
+
+
+## Tree Model
+
+I think this model could perform better, because there some variables which can affect this model not only linearly, but the other way, in this case tree model can show better performance
+
+```{r}
+prices_tree <- rpart(data = dt_houses, formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea, method = 'anova')
+
+prp(prices_tree, digits = -3)
+```
+
+```{r}
+printcp(prices_tree)
+```
+
+Now I have built with the help of rpart tree model based on my dataset, let explore it:
+
+```{r}
+prices_tree
+```
+
+We can see, that we have 31 Nodes, I think for this kind of dataset it may be okay.
+
+Now it would be greate to prune the tree, because I do not want my tree to overfit:
+
+```{r}
+plotcp(prices_tree)
+```
+This is complexity of this tree. We need the lowest complexity, to get as few leafs as possible to get the best performance, so that tree won't overfit the data.
+
+```{r}
+prices_tree_min_cp <- prices_tree$cptable[which.min(prices_tree$cptable[, "xerror"]), "CP"]
+model_tree <- prune(prices_tree, cp = prices_tree_min_cp )
+prp(prices_tree,digits = -3)
+```
+
+after we pruned the tree, let's calculate the RMSE for the tree model
+
+
+```{r}
+prices_tree_pred <- predict(prices_tree, dt_houses[, c("area","bathrooms", "bedrooms", "hotwaterheating", "airconditioning", "parking", "stories", "mainroad", "furnishingstatus", "guestroom", "basement", "prefarea")])
+prices_tree_rmse <- mean(sqrt(abs(dt_houses$price - prices_tree_pred)))
+
+prices_tree_rmse
+```
+
+
+## Comparing two models
+
+price linear model has a MSE of 
+
+```{r}
+price_lm_rmse
+```
+
+price tree model has a MSE of 
+
+```{r}
+prices_tree_rmse
+```
+
+
+It is surprising for me, as for a person who does not have a lot of experience in modelling, that linear model performs better than tree model by approx. 7.28%. 
+
+```{r}
+100 - price_lm_rmse / prices_tree_rmse * 100
+```
+
+collecting data for my statistics in the end
+
+```{r}
+dt_features_performance$price_lm_rmse[dt_features_performance$feature == 0] <- price_lm_rmse
+dt_features_performance$price_tree_rmse[dt_features_performance$feature == 0] <- prices_tree_rmse
+```
+
+
+# Feature Engineering
+
+Here I would like to try all ideas and observations, which I've had through my course work.
+
+## Feature 1
+#### calculating overall amount of rooms
+
+I've seen two columns, such as "bedrooms" and "bathrooms", they store numerical value, amount of this kind of rooms. It makes sense for me to create a new column "room_count", because it may have bigger impact on the performance.
+
+### Linear Model
+
+
+```{r}
+dt_houses[, 'room_count' := bathrooms + bedrooms]
+```
+
+
+Let's try Model with a new variable
+
+```{r}
+price_lm <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea + room_count, data = dt_houses)
+
+summary(price_lm)
+```
+
+```{r}
+price_lm_rmse <- mean(sqrt(abs(price_lm$residuals)))
+
+price_lm_rmse
+```
+
+this is absolutely the same. We can see, that room_count has NA, that means, this variable do not make this model any better.
+
+### Tree Model
+
+```{r}
+prices_tree <- rpart(data = dt_houses, formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea + room_count, method = 'anova')
+
+prp(prices_tree, digits = -3)
+```
+I think, that in feature enginieering, I won't plot any tree complexity and explore tree itself, because here the main focus is on the benchmarking and comparing two models with new features. Let's prune the model and measure RMSE
+
+```{r}
+prices_tree_min_cp <- prices_tree$cptable[which.min(prices_tree$cptable[, "xerror"]), "CP"]
+model_tree <- prune(prices_tree, cp = prices_tree_min_cp )
+prp(prices_tree,digits = -3)
+```
+
+pruning is done, now the moment of truth, will the tree model with a new room_count feature perform better:
+
+```{r}
+prices_tree_pred <- predict(prices_tree, dt_houses[, c("area","bathrooms", "bedrooms", "hotwaterheating", "airconditioning", "parking", "stories", "mainroad", "furnishingstatus", "guestroom", "basement", "prefarea", "room_count")])
+prices_tree_rmse <- mean(sqrt(abs(dt_houses$price - prices_tree_pred)))
+
+prices_tree_rmse
+```
+
+
+and it does perform better indeed. Approx 1.1% better performance.
+
+```{r}
+100 - prices_tree_rmse / 860.0223 * 100
+```
+
+
+```{r}
+dt_features_performance$price_lm_rmse[dt_features_performance$feature == 1] <- price_lm_rmse
+dt_features_performance$price_tree_rmse[dt_features_performance$feature == 1] <- prices_tree_rmse
+```
+
+### Comparing
+
+With new 'room_count' feature, linear model performs the same: 797.381 - RMSE
+On the other side tree model with a brand new feature has improved it's benchmark for 1.1%.
+
+Linear model still better, but may be there is some chances, we have 3 more features.
+
+
+## Feature 2
+#### Moving area closer to Gaussian (log transformation)
+
+what if we will try to bring the area variable closer to Gaussian with log transformation, because area density is skewed to the left, log transformation can help us to normalize the variable.
+
+### Linear Model
+
+
+```{r}
+dt_houses[, area_log := log(area)]
+```
+
+
+little visualization:
+
+```{r}
+ggplot(data = dt_houses, aes(x = area_log)) + 
+  geom_density(fill="#f1b147", color="#f1b147", alpha=0.25) + 
+  labs(
+    x = 'Price',
+    y = 'Density'
+  ) +
+  theme_minimal() + 
+  theme(axis.line = element_line(color = "#000000"))
+```
+
+and try model again :)
+
+```{r}
+price_lm <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea + room_count + area_log, data = dt_houses)
+
+summary(price_lm)
+price_lm_rmse <- mean(sqrt(abs(price_lm$residuals)))
+```
+
+```{r}
+price_lm_rmse
+```
+
+
+yes! It makes less errors. Previos we had RMSE of 797.382, now it is 793.388. Also 0.5% performance improvement.
+
+```{r}
+100 - price_lm_rmse / 797.382 * 100
+```
+
+
+### Tree Model
+
+```{r}
+prices_tree <- rpart(data = dt_houses, formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea + room_count + area_log, method = 'anova')
+
+prp(prices_tree, digits = -3)
+```
+Now prunning again
+
+```{r}
+prices_tree_min_cp <- prices_tree$cptable[which.min(prices_tree$cptable[, "xerror"]), "CP"]
+model_tree <- prune(prices_tree, cp = prices_tree_min_cp )
+prp(prices_tree,digits = -3)
+```
+
+and calculating the error
+
+```{r}
+prices_tree_pred <- predict(prices_tree, dt_houses[, c("area","bathrooms", "bedrooms", "hotwaterheating", "airconditioning", "parking", "stories", "mainroad", "furnishingstatus", "guestroom", "basement", "prefarea", "room_count", "area_log")])
+prices_tree_rmse <- mean(sqrt(abs(dt_houses$price - prices_tree_pred)))
+
+prices_tree_rmse
+```
+
+
+Yep, there is no gain in performance, and I could probably say why. Linear model gains performance when we normalize variables, because this algorithm is sensitive to Gaussian, but the tree model, does not "care" so much about density of the variables, because it does not calculate "distance" between points. This is my prediction, but I could be also wrong, I did not google it, because it is more interesting to try to think about concepts before you get an answer
+
+### Comparing
+
+So there are RMSE from linear model: 793.388 and RMSE from tree: 850.561. Linear model is still better :)
+
+```{r}
+dt_features_performance$price_lm_rmse[dt_features_performance$feature == 2] <- price_lm_rmse
+dt_features_performance$price_tree_rmse[dt_features_performance$feature == 2] <- prices_tree_rmse
+```
+
+### Relevant statistics theory
+
+I think, this could be a good Idea to take a loot at a correlation between variables, but from Data exploration I can already say, that area correlates with price.
+
+Here we are, correlation plot:
+
+```{r}
+ggcorrplot(corr = cor(dt_houses[, .(price, area, bedrooms, bathrooms, stories, parking)]), 
+           hc.order = TRUE,
+           lab = TRUE)
+```
+
+Hm, correlation plot does not look as great, as I have expected, but the strongest correlation with price is area and amount of bathrooms. 
+
+## Feature 3
+##### Treat bathrooms as a factor variable
+
+I got an Idea, we have bathrooms, and they are in range from 1 to 4.What if we will treat each amount of bathrooms as a factor variable. Because it is possible that home with 2 bathrooms is drastically more expensive than a house with 1, and the one with 3 bathrooms is super costly
+
+### Linear Model
+
+
+```{r}
+# creating factor
+dt_houses[, count_bathrooms_1 := 0][bathrooms == 1, count_bathrooms_1 := 1]
+dt_houses[, count_bathrooms_2 := 0][bathrooms == 2, count_bathrooms_2 := 1]
+dt_houses[, count_bathrooms_3 := 0][bathrooms == 3, count_bathrooms_3 := 1]
+dt_houses[, count_bathrooms_4 := 0][bathrooms == 4, count_bathrooms_4 := 1]
+
+
+price_lm <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea + room_count + area_log + count_bathrooms_1 + count_bathrooms_2 + count_bathrooms_3 + count_bathrooms_4, data = dt_houses)
+
+summary(price_lm)
+price_lm_rmse <- mean(sqrt(abs(price_lm$residuals)))
+```
+
+```{r}
+price_lm_rmse
+```
+
+And we gain a little bit more performance. This is really great. Approx 1.05% better than the first model without features. But not every factor is used, may be there is a big difference between 1 and 2 bathrooms, That may be because the luck of data, because I have less than 5 units with 3 or 4 bathrooms overall in my dataset.
+
+```{r}
+100 - 788.9308 / 797.382 * 100
+```
+
+### Tree Model
+
+Let us try tree model now.
+
+```{r}
+prices_tree <- rpart(data = dt_houses, formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea + room_count + area_log + count_bathrooms_1 + count_bathrooms_2 + count_bathrooms_3 + count_bathrooms_4, method = 'anova')
+
+prp(prices_tree, digits = -3)
+```
+
+cleane it up
+
+```{r}
+prices_tree_min_cp <- prices_tree$cptable[which.min(prices_tree$cptable[, "xerror"]), "CP"]
+model_tree <- prune(prices_tree, cp = prices_tree_min_cp )
+prp(prices_tree,digits = -3)
+```
+
+calculating error:
+
+```{r}
+prices_tree_pred <- predict(prices_tree, dt_houses[, c("area","bathrooms", "bedrooms", "hotwaterheating", "airconditioning", "parking", "stories", "mainroad", "furnishingstatus", "guestroom", "basement", "prefarea", "room_count", "area_log", "count_bathrooms_1", "count_bathrooms_2", "count_bathrooms_3", "count_bathrooms_4")])
+prices_tree_rmse <- mean(sqrt(abs(dt_houses$price - prices_tree_pred)))
+
+prices_tree_rmse
+```
+
+This is awesome, we are making ~ 17.8951 less errors, this is almost 3.2% less errors.
+
+```{r}
+100 - 832.6666 / 860.0223 * 100
+```
+
+
+### Comparing
+
+This becomes interesting. While linear model has improved by 1.05%, tree model made bigger gain in performance: ~3.2%. This is 3 times linear model gains.
+
+```{r}
+dt_features_performance$price_lm_rmse[dt_features_performance$feature == 3] <- price_lm_rmse
+dt_features_performance$price_tree_rmse[dt_features_performance$feature == 3] <- prices_tree_rmse
+```
+
+
+## Feature 4
+#### Airconditioning as one-hot encoding
+
+This could be the case, because if this dataset was gathered from a hot area, where summer is usually very warm, airconditioning could be very important factor, while buying a house and it will make place with it more attractive, but when there is not any, it could make place worse. 
+
+For example, if there is airconditioning there could be Beta = x, but if there is not, it is not 0, it is -y value from the property.
+
+Let's do this
+
+```{r}
+# creating factors
+dt_houses[, airconditioning_yes := 0][airconditioning == 'yes', airconditioning_yes := 1]
+dt_houses[, airconditioning_no := 0][airconditioning == 'no', airconditioning_no := 1]
+
+```
+
+### Linear model
+
+```{r}
+# calculating and running model
+price_lm <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea + room_count + area_log + count_bathrooms_1 + count_bathrooms_2 + count_bathrooms_3 + count_bathrooms_4 + airconditioning_yes + airconditioning_no, data = dt_houses)
+
+summary(price_lm)
+```
+
+```{r}
+price_lm_rmse <- mean(sqrt(abs(price_lm$residuals)))
+price_lm_rmse
+```
+
+there is not any performance upgrade with this feature.
+
+### Tree Model
+
+Now here, i think it won't make any difference, because this feature was more linear model oriented, than tree model oriented, but we will still try it out and compare the results
+
+```{r}
+prices_tree <- rpart(data = dt_houses, formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea + room_count + area_log + count_bathrooms_1 + count_bathrooms_2 + count_bathrooms_3 + count_bathrooms_4 + airconditioning_yes + airconditioning_no, method = 'anova')
+
+prp(prices_tree, digits = -3)
+```
+
+prunning again:
+
+```{r}
+prices_tree_min_cp <- prices_tree$cptable[which.min(prices_tree$cptable[, "xerror"]), "CP"]
+model_tree <- prune(prices_tree, cp = prices_tree_min_cp )
+prp(prices_tree,digits = -3)
+```
+
+and calculating error: 
+
+```{r}
+prices_tree_pred <- predict(prices_tree, dt_houses[, c("area","bathrooms", "bedrooms", "hotwaterheating", "airconditioning", "parking", "stories", "mainroad", "furnishingstatus", "guestroom", "basement", "prefarea", "room_count", "area_log", "count_bathrooms_1", "count_bathrooms_2", "count_bathrooms_3", "count_bathrooms_4", "airconditioning_yes", "airconditioning_no")])
+prices_tree_rmse <- mean(sqrt(abs(dt_houses$price - prices_tree_pred)))
+
+prices_tree_rmse
+
+```
+
+
+and as expected, this feature did not affect performance. 
+
+### Comparing
+
+For both models, there was not any performance gain. Linear model performs better, than tree model on this dataset, but I would like to do small Plot, to finish this course work.
+
+```{r}
+dt_features_performance$price_lm_rmse[dt_features_performance$feature == 4] <- price_lm_rmse
+dt_features_performance$price_tree_rmse[dt_features_performance$feature == 4] <- prices_tree_rmse
+```
+
+Now when I have my data, this is my conclusion plot:
+
+```{r}
+ggplot() + 
+  geom_point(data = dt_features_performance, aes(x = feature, y = price_lm_rmse), 
+             size = 4, color = "#1f77b4", alpha = 0.8) + 
+  geom_line(data = dt_features_performance, aes(x = feature, y = price_lm_rmse), 
+            color = "#1f77b4", linewidth = 1) + 
+  geom_point(data = dt_features_performance, aes(x = feature, y = price_tree_rmse), 
+             size = 4, color = "#ff7f0e", alpha = 0.8) + 
+  geom_line(data = dt_features_performance, aes(x = feature, y = price_tree_rmse), 
+            color = "#ff7f0e", linewidth = 1) + 
+  labs(title = "Performance with Amount of Features", 
+       x = "Amount of Features", 
+       y = "Performance (RMSE)") + 
+  theme_minimal() + 
+  theme(
+    axis.line = element_line(color = "#000000"),
+    text = element_text(size = 14),
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5)
+  )
+```
+So now we can observe that with more features overall both models could perform better, but for this dataset and my implementation the linear model performs better, but I thought that the tree model will perform much better. In conclusion, I would like to mention, that tree model is lower in performance, but we achived more boost by introducing new features, than by linear model.
+
+***
+
+
+
+
