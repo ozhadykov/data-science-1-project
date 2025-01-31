@@ -308,7 +308,7 @@ First, I would like to start pretty simple with linear model.
 
 I consider to take all variables to my model, because they all seem to be very important.
 
-But before we start, I want to introduce a data frame, which will be very usefull in the end of this course work.
+But before we start, I want to introduce a data table, which will be very useful in the end of this course work.
 
 ```{r}
 dt_features_performance <- data.table("price_lm_rmse" = c(0, 0, 0, 0, 0), "price_tree_rmse" = c(0, 0, 0, 0, 0), "feature" = c(0, 1, 2, 3, 4))
@@ -327,7 +327,7 @@ summary(price_lm)
 
 We got 0.68 R-squared, which is not that bad for a model just made up. But that's not all, I will try to do better here, but first, another model.
 
-But I would like to measure performance of my models with RMSE, so I will calculate MSE for linear model.
+But I would like to measure performance of my models with RMSE, so I will calculate RMSE for linear model.
 
 ```{r}
 price_lm_rmse <- mean(sqrt(abs(price_lm$residuals)))
@@ -350,7 +350,7 @@ prp(prices_tree, digits = -3)
 printcp(prices_tree)
 ```
 
-Now I have built with the help of rpart tree model based on my dataset, let explore it:
+Now after I have built with the help of rpart tree model based on my dataset, let us explore it:
 
 ```{r}
 prices_tree
@@ -358,7 +358,7 @@ prices_tree
 
 We can see, that we have 31 Nodes, I think for this kind of dataset it may be okay.
 
-Now it would be greate to prune the tree, because I do not want my tree to overfit:
+Now it would be great to prune the tree, because I do not want my tree to overfit:
 
 ```{r}
 plotcp(prices_tree)
@@ -384,13 +384,13 @@ prices_tree_rmse
 
 ## Comparing two models
 
-price linear model has a MSE of 
+price linear model has a RMSE of 
 
 ```{r}
 price_lm_rmse
 ```
 
-price tree model has a MSE of 
+price tree model has a RMSE of 
 
 ```{r}
 prices_tree_rmse
@@ -413,25 +413,19 @@ dt_features_performance$price_tree_rmse[dt_features_performance$feature == 0] <-
 
 # Feature Engineering
 
-Here I would like to try all ideas and observations, which I've had through my course work.
+Here I would like to try all ideas and observations, which I've had through my course work. As I have a lot of binary variables and they are already encoded by R's lm library I would use factor variables such as bedrooms, bathrooms and stories.
 
 ## Feature 1
-#### calculating overall amount of rooms
+#### Bedrooms as a factor variable
 
-I've seen two columns, such as "bedrooms" and "bathrooms", they store numerical value, amount of this kind of rooms. It makes sense for me to create a new column "room_count", because it may have bigger impact on the performance.
+I want to use bedroom variable as a factor, to do that  I will delete original bedrooms and add instead bedrooms factor.
 
 ### Linear Model
 
+Let's try Model with a new factor variable.
 
 ```{r}
-dt_houses[, 'room_count' := bathrooms + bedrooms]
-```
-
-
-Let's try Model with a new variable
-
-```{r}
-price_lm <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea + room_count, data = dt_houses)
+price_lm <- lm(formula = price ~ area + factor(bedrooms) + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea, data = dt_houses)
 
 summary(price_lm)
 ```
@@ -442,38 +436,37 @@ price_lm_rmse <- mean(sqrt(abs(price_lm$residuals)))
 price_lm_rmse
 ```
 
-this is absolutely the same. We can see, that room_count has NA, that means, this variable do not make this model any better.
+Now the RMSE is a little bit better. Approximately by 0.12%. Next I am going to test this variable on the tree model.
+
+```{r}
+100 - price_lm_rmse / 797.382 * 100
+```
+
 
 ### Tree Model
 
 ```{r}
-prices_tree <- rpart(data = dt_houses, formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea + room_count, method = 'anova')
+prices_tree <- rpart(data = dt_houses, formula = price ~ area + factor(bedrooms) + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea, method = 'anova')
 
 prp(prices_tree, digits = -3)
 ```
 I think, that in feature enginieering, I won't plot any tree complexity and explore tree itself, because here the main focus is on the benchmarking and comparing two models with new features. Let's prune the model and measure RMSE
 
 ```{r}
+# pruning
 prices_tree_min_cp <- prices_tree$cptable[which.min(prices_tree$cptable[, "xerror"]), "CP"]
 model_tree <- prune(prices_tree, cp = prices_tree_min_cp )
-prp(prices_tree,digits = -3)
-```
 
-pruning is done, now the moment of truth, will the tree model with a new room_count feature perform better:
+# predicting
+prices_tree_pred <- predict(prices_tree, dt_houses[, c("area","bathrooms", "bedrooms", "hotwaterheating", "airconditioning", "parking", "stories", "mainroad", "furnishingstatus", "guestroom", "basement", "prefarea")])
 
-```{r}
-prices_tree_pred <- predict(prices_tree, dt_houses[, c("area","bathrooms", "bedrooms", "hotwaterheating", "airconditioning", "parking", "stories", "mainroad", "furnishingstatus", "guestroom", "basement", "prefarea", "room_count")])
+#calculating RMSE
 prices_tree_rmse <- mean(sqrt(abs(dt_houses$price - prices_tree_pred)))
 
 prices_tree_rmse
 ```
 
-
-and it does perform better indeed. Approx 1.1% better performance.
-
-```{r}
-100 - prices_tree_rmse / 860.0223 * 100
-```
+It performs the same, and I think it should be like that, because tree is not sensible for factor variables. It is still a number. It is interpredet other way by linear Model, but for the tree it is the same.
 
 
 ```{r}
@@ -483,10 +476,10 @@ dt_features_performance$price_tree_rmse[dt_features_performance$feature == 1] <-
 
 ### Comparing
 
-With new 'room_count' feature, linear model performs the same: 797.381 - RMSE
-On the other side tree model with a brand new feature has improved it's benchmark for 1.1%.
+With new 'factor(bedroom)' feature, linear model performs better: 796.3947 - RMSE
+On the other side tree model with new feature has not improved.
 
-Linear model still better, but may be there is some chances, we have 3 more features.
+Linear model is still better, but may be there is some chances, we have 3 more features.
 
 
 ## Feature 2
@@ -502,7 +495,7 @@ dt_houses[, area_log := log(area)]
 ```
 
 
-little visualization:
+Let's also visualize it. Here function looks much balanced and I think it will work better.
 
 ```{r}
 ggplot(data = dt_houses, aes(x = area_log)) + 
@@ -515,10 +508,10 @@ ggplot(data = dt_houses, aes(x = area_log)) +
   theme(axis.line = element_line(color = "#000000"))
 ```
 
-and try model again :)
+Now I want to run the model with a second new feature.
 
 ```{r}
-price_lm <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea + room_count + area_log, data = dt_houses)
+price_lm <- lm(formula = price ~ area + factor(bedrooms) + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea + area_log, data = dt_houses)
 
 summary(price_lm)
 price_lm_rmse <- mean(sqrt(abs(price_lm$residuals)))
@@ -529,17 +522,19 @@ price_lm_rmse
 ```
 
 
-yes! It makes less errors. Previos we had RMSE of 797.382, now it is 793.388. Also 0.5% performance improvement.
+Success! It makes less errors. Previous we had RMSE of 796.3947, now it is 792.3163. Also 0.51% performance improvement.
 
 ```{r}
-100 - price_lm_rmse / 797.382 * 100
+100 - price_lm_rmse / 796.3947 * 100
 ```
 
 
 ### Tree Model
 
+It is tree's turn, I want to run new feature on tree Model.
+
 ```{r}
-prices_tree <- rpart(data = dt_houses, formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea + room_count + area_log, method = 'anova')
+prices_tree <- rpart(data = dt_houses, formula = price ~ area + factor(bedrooms) + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea  + area_log, method = 'anova')
 
 prp(prices_tree, digits = -3)
 ```
@@ -554,18 +549,18 @@ prp(prices_tree,digits = -3)
 and calculating the error
 
 ```{r}
-prices_tree_pred <- predict(prices_tree, dt_houses[, c("area","bathrooms", "bedrooms", "hotwaterheating", "airconditioning", "parking", "stories", "mainroad", "furnishingstatus", "guestroom", "basement", "prefarea", "room_count", "area_log")])
+prices_tree_pred <- predict(prices_tree, dt_houses[, c("area","bathrooms", "bedrooms", "hotwaterheating", "airconditioning", "parking", "stories", "mainroad", "furnishingstatus", "guestroom", "basement", "prefarea", "area_log")])
 prices_tree_rmse <- mean(sqrt(abs(dt_houses$price - prices_tree_pred)))
 
 prices_tree_rmse
 ```
 
 
-Yep, there is no gain in performance, and I could probably say why. Linear model gains performance when we normalize variables, because this algorithm is sensitive to Gaussian, but the tree model, does not "care" so much about density of the variables, because it does not calculate "distance" between points. This is my prediction, but I could be also wrong, I did not google it, because it is more interesting to try to think about concepts before you get an answer
+Yep, there is no gain in performance, and I could probably say why. Linear model gains performance when we normalize variables, because this algorithm is sensitive to Gaussian, but the tree model, does not "care" so much about density of the variables, because it does not calculate "distance" between points and it is great in working with non-linar dependencies. This is my prediction, but I could be also wrong.
 
 ### Comparing
 
-So there are RMSE from linear model: 793.388 and RMSE from tree: 850.561. Linear model is still better :)
+So there are RMSE from linear model: 792.3163 and RMSE from tree: 850.561. Linear model performance better than tree now.
 
 ```{r}
 dt_features_performance$price_lm_rmse[dt_features_performance$feature == 2] <- price_lm_rmse
@@ -595,14 +590,7 @@ I got an Idea, we have bathrooms, and they are in range from 1 to 4.What if we w
 
 
 ```{r}
-# creating factor
-dt_houses[, count_bathrooms_1 := 0][bathrooms == 1, count_bathrooms_1 := 1]
-dt_houses[, count_bathrooms_2 := 0][bathrooms == 2, count_bathrooms_2 := 1]
-dt_houses[, count_bathrooms_3 := 0][bathrooms == 3, count_bathrooms_3 := 1]
-dt_houses[, count_bathrooms_4 := 0][bathrooms == 4, count_bathrooms_4 := 1]
-
-
-price_lm <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea + room_count + area_log + count_bathrooms_1 + count_bathrooms_2 + count_bathrooms_3 + count_bathrooms_4, data = dt_houses)
+price_lm <- lm(formula = price ~ area + factor(bedrooms) + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + factor(bathrooms) + guestroom + basement + prefarea + area_log, data = dt_houses)
 
 summary(price_lm)
 price_lm_rmse <- mean(sqrt(abs(price_lm$residuals)))
@@ -612,10 +600,10 @@ price_lm_rmse <- mean(sqrt(abs(price_lm$residuals)))
 price_lm_rmse
 ```
 
-And we gain a little bit more performance. This is really great. Approx 1.05% better than the first model without features. But not every factor is used, may be there is a big difference between 1 and 2 bathrooms, That may be because the luck of data, because I have less than 5 units with 3 or 4 bathrooms overall in my dataset.
+And we gain a little bit more performance. This is really great. Approx 1.19% better than the first model without features. But not every factor is used, may be there is a big difference between 1 and 2 bathrooms, That may be because the luck of data, because I have less than 5 units with 3 or 4 bathrooms overall in my dataset.
 
 ```{r}
-100 - 788.9308 / 797.382 * 100
+100 - price_lm_rmse / 797.382 * 100
 ```
 
 ### Tree Model
@@ -623,23 +611,19 @@ And we gain a little bit more performance. This is really great. Approx 1.05% be
 Let us try tree model now.
 
 ```{r}
-prices_tree <- rpart(data = dt_houses, formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea + room_count + area_log + count_bathrooms_1 + count_bathrooms_2 + count_bathrooms_3 + count_bathrooms_4, method = 'anova')
+prices_tree <- rpart(data = dt_houses, formula = price ~ area + factor(bedrooms) + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + factor(bathrooms) + guestroom + basement + prefarea  + area_log, method = 'anova')
 
 prp(prices_tree, digits = -3)
 ```
 
-cleane it up
+Now we have to prune the tree and then make predictions with RMSE calculations.
 
 ```{r}
 prices_tree_min_cp <- prices_tree$cptable[which.min(prices_tree$cptable[, "xerror"]), "CP"]
 model_tree <- prune(prices_tree, cp = prices_tree_min_cp )
-prp(prices_tree,digits = -3)
-```
 
-calculating error:
 
-```{r}
-prices_tree_pred <- predict(prices_tree, dt_houses[, c("area","bathrooms", "bedrooms", "hotwaterheating", "airconditioning", "parking", "stories", "mainroad", "furnishingstatus", "guestroom", "basement", "prefarea", "room_count", "area_log", "count_bathrooms_1", "count_bathrooms_2", "count_bathrooms_3", "count_bathrooms_4")])
+prices_tree_pred <- predict(prices_tree, dt_houses[, c("area","bathrooms", "bedrooms", "hotwaterheating", "airconditioning", "parking", "stories", "mainroad", "furnishingstatus", "guestroom", "basement", "prefarea", "area_log")])
 prices_tree_rmse <- mean(sqrt(abs(dt_houses$price - prices_tree_pred)))
 
 prices_tree_rmse
