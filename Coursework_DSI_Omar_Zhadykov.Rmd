@@ -128,8 +128,7 @@ ggplot(data = dt_houses, aes(x = price)) +
   theme_minimal() + 
   theme(axis.line = element_line(color = "#000000"))
 ```
-
-It is very clear, that most of the prices are between 0 and ~ 5 million.
+This density plot visualizes the distribution of house prices, showing that most houses are priced around 4-5 million, with a right-skewed distribution (some higher-priced houses pulling the mean up). The dashed vertical line represents the mean price (~5M). The plot highlights that while most houses fall within a moderate price range, some expensive properties extend beyond 10M.
 
 Area density:
 
@@ -143,10 +142,11 @@ ggplot(data = dt_houses, aes(x = area)) +
   theme_minimal() + 
   theme(axis.line = element_line(color = "#000000"))
 ```
-Area density looks a little bit more centered, but still skewed to the left.
+The area density plot looks similar to price density plot and can also make sense, because if house has a bigger area, the higher cost is quite expected. This plot shows that most houses are having area in range ~3000-5000. But some properties have area more than 12000.
 
 <br>
-How does area affect price of the house? We will plot it with points, where price is on the y-axis and area on x-axis.
+
+Next plot will visualize the distribution of price depending on area. 
 
 ```{r}
 ggplot() + 
@@ -156,9 +156,9 @@ ggplot() +
   theme(axis.line = element_line(color = "#000000"))
 ```
 
-This looks nice, and it is also logical, more space, higher price. But if we take a look at parking places, there is hard to see a trend.
+This scatter plot visualizes the relationship between house area (x-axis) and price (y-axis), with color indicating the number of parking spaces. It shows a positive correlation between area and price—larger houses tend to be more expensive. However, there is some variability, as some large houses have relatively lower prices. The color gradient suggests that houses with more parking spaces (lighter blue) tend to be higher in price and larger in area.
 
-But, now I have the simplest idea, how does amount of bedrooms correlates with the price.
+The next plot, which I am going to do is a boxplot and I want to use bedrooms as a factor variable on x axis and price on y-axis, to get an overall understanding, how amount of bedrooms affect price.
 
 ```{r}
 ggplot(data = dt_houses, aes(x = factor(bedrooms), y = price)) +
@@ -166,9 +166,9 @@ ggplot(data = dt_houses, aes(x = factor(bedrooms), y = price)) +
   theme_minimal() 
 ```
 
-We can see, that on average, more bedrooms, means higher price, but I think there is not really strong relationship between this two variables.
+Boxplot shows, that on average, houses with more bedrooms have higher prices, but around 4-6 bedrooms, 1 quantile stagnates, and so does median price. There are some outliers, but not too much.
 
-Also it would be great to take a look at a bedrooms histogram:
+It is also interesting to take a look at distribution of bedrooms, so next plot would be a histogram, because I want to know, which amount of bedrooms is the most "popular" in the whole dataset.
 
 ```{r}
 ggplot(data = dt_houses, aes(x = bedrooms)) + 
@@ -182,8 +182,7 @@ mean of the bedrooms:
 mean(dt_houses$bedrooms)
 ```
 
-
-Here we can see, that the most of the properties tend to have 2, 3 or 4 rooms. 
+From this visualization we can mention, that the most of the houses have 2, 3 or 4 rooms. 1, 5 and 6 rooms are not as popular in this dataset.
 
 Let's have a look at histogram of stories: 
 
@@ -199,7 +198,7 @@ ggplot(data = dt_houses, aes(x = stories)) +
 mean(dt_houses$stories)
 ```
 
-we can see, that most of the houses are 1-2 stories.
+This plot shows that most popular amount of stories are 1 and 2. 3 and 4 makeing less than 100 houses together.
 
 Bathrooms are also interesting variable, so let's take a look at histogram and a Boxplot bathrooms and price:
 ```{r}
@@ -338,7 +337,9 @@ price_lm_rmse
 
 ## Tree Model
 
-I think this model could perform better, because there some variables which can affect this model not only linearly, but the other way, in this case tree model can show better performance
+I think this model could perform better, because there some variables which can affect this model not only linearly, but the other way, in this case tree model can show better performance.
+
+In this coursework will be used rpart to create a regression tree.
 
 ```{r}
 prices_tree <- rpart(data = dt_houses, formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea, method = 'anova')
@@ -466,9 +467,9 @@ prices_tree_rmse <- mean(sqrt(abs(dt_houses$price - prices_tree_pred)))
 prices_tree_rmse
 ```
 
-It performs the same, and I think it should be like that, because tree is not sensible for factor variables. It is still a number. It is interpredet other way by linear Model, but for the tree it is the same.
+It performs the same, and I think it should be like that, because tree is not sensible for factor variables. It is still a number. It is interpreted other way by linear Model, but for the tree it is the same.
 
-
+Here I am adding my variables to create a small chart in the end.
 ```{r}
 dt_features_performance$price_lm_rmse[dt_features_performance$feature == 1] <- price_lm_rmse
 dt_features_performance$price_tree_rmse[dt_features_performance$feature == 1] <- prices_tree_rmse
@@ -489,7 +490,7 @@ what if we will try to bring the area variable closer to Gaussian with log trans
 
 ### Linear Model
 
-
+I am going to create a new column in my data table, which will be called area_log and will contain ln(area[i]), where i is the index of the row.
 ```{r}
 dt_houses[, area_log := log(area)]
 ```
@@ -538,7 +539,7 @@ prices_tree <- rpart(data = dt_houses, formula = price ~ area + factor(bedrooms)
 
 prp(prices_tree, digits = -3)
 ```
-Now prunning again
+Now I will prune the tree and then calculate the RMSE for the model with this new feature.
 
 ```{r}
 prices_tree_min_cp <- prices_tree$cptable[which.min(prices_tree$cptable[, "xerror"]), "CP"]
@@ -560,7 +561,7 @@ Yep, there is no gain in performance, and I could probably say why. Linear model
 
 ### Comparing
 
-So there are RMSE from linear model: 792.3163 and RMSE from tree: 850.561. Linear model performance better than tree now.
+So there are RMSE from linear model: 792.3163 and RMSE from tree: 850.561. Linear model's performance is better than tree's
 
 ```{r}
 dt_features_performance$price_lm_rmse[dt_features_performance$feature == 2] <- price_lm_rmse
@@ -629,16 +630,16 @@ prices_tree_rmse <- mean(sqrt(abs(dt_houses$price - prices_tree_pred)))
 prices_tree_rmse
 ```
 
-This is awesome, we are making ~ 17.8951 less errors, this is almost 3.2% less errors.
+This is awesome, we are making ~ 17.8951 less errors, this is 2.08% less errors.
 
 ```{r}
-100 - 832.6666 / 860.0223 * 100
+100 - prices_tree_rmse / 860.0223 * 100
 ```
 
 
 ### Comparing
 
-This becomes interesting. While linear model has improved by 1.05%, tree model made bigger gain in performance: ~3.2%. This is 3 times linear model gains.
+This becomes interesting. While linear model has improved by 1.19%, tree model made bigger gain in performance: ~2.08%. This is ~2 times linear model gains.
 
 ```{r}
 dt_features_performance$price_lm_rmse[dt_features_performance$feature == 3] <- price_lm_rmse
@@ -647,26 +648,17 @@ dt_features_performance$price_tree_rmse[dt_features_performance$feature == 3] <-
 
 
 ## Feature 4
-#### Airconditioning as one-hot encoding
+#### Stories as a factor variable
 
-This could be the case, because if this dataset was gathered from a hot area, where summer is usually very warm, airconditioning could be very important factor, while buying a house and it will make place with it more attractive, but when there is not any, it could make place worse. 
+I want to treat my stories also as a categorical factor variable and to do that I will again use factor() function in R. I will try this feature in linear and tree model.
 
-For example, if there is airconditioning there could be Beta = x, but if there is not, it is not 0, it is -y value from the property.
-
-Let's do this
-
-```{r}
-# creating factors
-dt_houses[, airconditioning_yes := 0][airconditioning == 'yes', airconditioning_yes := 1]
-dt_houses[, airconditioning_no := 0][airconditioning == 'no', airconditioning_no := 1]
-
-```
+First, I would like to start as usual with linear model.
 
 ### Linear model
 
 ```{r}
 # calculating and running model
-price_lm <- lm(formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea + room_count + area_log + count_bathrooms_1 + count_bathrooms_2 + count_bathrooms_3 + count_bathrooms_4 + airconditioning_yes + airconditioning_no, data = dt_houses)
+price_lm <- lm(formula = price ~ area + factor(bedrooms) + hotwaterheating + airconditioning + factor(stories) + mainroad + parking + furnishingstatus + factor(bathrooms) + guestroom + basement + prefarea + area_log, data = dt_houses)
 
 summary(price_lm)
 ```
@@ -676,42 +668,47 @@ price_lm_rmse <- mean(sqrt(abs(price_lm$residuals)))
 price_lm_rmse
 ```
 
-there is not any performance upgrade with this feature.
+There is a little performance gain in linear model. It is 0.37%. Now let's test this feature on Tree.
+
+```{r}
+100 - price_lm_rmse / 787.8693 * 100
+```
+
 
 ### Tree Model
 
-Now here, i think it won't make any difference, because this feature was more linear model oriented, than tree model oriented, but we will still try it out and compare the results
+After my previous experience with bathrooms, I think here we could also see some performance gain, and I think it will be probably better than by linear model. I want now to run the tree model and then prune and predict, then measure the RMSE:
 
 ```{r}
-prices_tree <- rpart(data = dt_houses, formula = price ~ area + bedrooms + hotwaterheating + airconditioning + stories + mainroad + parking + furnishingstatus + bathrooms + guestroom + basement + prefarea + room_count + area_log + count_bathrooms_1 + count_bathrooms_2 + count_bathrooms_3 + count_bathrooms_4 + airconditioning_yes + airconditioning_no, method = 'anova')
+prices_tree <- rpart(data = dt_houses, formula = price ~ area + factor(bedrooms) + hotwaterheating + airconditioning + factor(stories) + mainroad + parking + furnishingstatus + factor(bathrooms) + guestroom + basement + prefarea + area_log, method = 'anova')
 
 prp(prices_tree, digits = -3)
 ```
 
-prunning again:
+Now I am pruning and predicting. Then calculating RMSE, which I want to compare with the previous result.
 
 ```{r}
+# pruning 
 prices_tree_min_cp <- prices_tree$cptable[which.min(prices_tree$cptable[, "xerror"]), "CP"]
 model_tree <- prune(prices_tree, cp = prices_tree_min_cp )
-prp(prices_tree,digits = -3)
-```
 
-and calculating error: 
+# predicting
+prices_tree_pred <- predict(prices_tree, dt_houses[, c("area","bathrooms", "bedrooms", "hotwaterheating", "airconditioning", "parking", "stories", "mainroad", "furnishingstatus", "guestroom", "basement", "prefarea", "area_log")])
 
-```{r}
-prices_tree_pred <- predict(prices_tree, dt_houses[, c("area","bathrooms", "bedrooms", "hotwaterheating", "airconditioning", "parking", "stories", "mainroad", "furnishingstatus", "guestroom", "basement", "prefarea", "room_count", "area_log", "count_bathrooms_1", "count_bathrooms_2", "count_bathrooms_3", "count_bathrooms_4", "airconditioning_yes", "airconditioning_no")])
+# calculating RMSE
 prices_tree_rmse <- mean(sqrt(abs(dt_houses$price - prices_tree_pred)))
 
 prices_tree_rmse
-
 ```
 
 
-and as expected, this feature did not affect performance. 
+and it seems that, there is no gain in performance if we use stories as a factor in the tree model.
 
 ### Comparing
 
-For both models, there was not any performance gain. Linear model performs better, than tree model on this dataset, but I would like to do small Plot, to finish this course work.
+With feature number 4, we have seen the gain in linear model, but the tree model, did not gain any performance. I think that the stories were not very strong variable in Tree model and in Linear model also, because in compare with such a variable like bathrooms, stories has gained 3 times for linear model and nothing for tree model.
+
+After we included feature 4, linear model is still performing better than the tree model with the overall performance of 784.923 and 842.1271 respectively.
 
 ```{r}
 dt_features_performance$price_lm_rmse[dt_features_performance$feature == 4] <- price_lm_rmse
@@ -740,7 +737,13 @@ ggplot() +
     plot.title = element_text(size = 16, face = "bold", hjust = 0.5)
   )
 ```
-So now we can observe that with more features overall both models could perform better, but for this dataset and my implementation the linear model performs better, but I thought that the tree model will perform much better. In conclusion, I would like to mention, that tree model is lower in performance, but we achived more boost by introducing new features, than by linear model.
+With this plot I wanted to show you my progress in creating features. On the x-axis you can see the number of features, from 0 to 4, because I have included the raw model in this plot. On the y-axis is the RMSE of the models. 
+
+The orange line is the tree model and the blue line is the linear model. 
+
+With more features overall, both models could perform better, but for this dataset and my implementation, the linear model performs better. When I started, I thought the tree model would perform much better. 
+
+Finally, I would like to mention that the tree model is lower in performance, but there was a really good boost with feature number 3. While all 4 features have improved the linear model incrementally with each new feature. 
 
 ***
 
